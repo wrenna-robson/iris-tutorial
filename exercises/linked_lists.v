@@ -66,7 +66,19 @@ Proof.
     by iApply "HΦ".
   - (* Induction step: xs = x :: xs' *)
     (* exercise *)
-Admitted.
+    iIntros (l) "%Φ [%hd [%l' [-> [Hhd Hl']]]] HΦ".
+    wp_rec.
+    wp_pures.
+    wp_load.
+    wp_load.
+    wp_store.
+    wp_apply (IH with "Hl'").
+    iIntros "Hl'".
+    iApply "HΦ".
+    iExists hd, l'.
+    iFrame.
+    done.
+  Qed.
 
 (**
   The append function recursively descends [l1], updating the links.
@@ -97,8 +109,30 @@ Lemma append_spec (l1 l2 : val) (xs ys : list val) :
 Proof.
   revert ys l1 l2.
   induction xs as [| x xs' IH]; simpl.
-  (* exercise *)
-Admitted.
+  - (* Base Case: xs = [] *)
+    iIntros (ys l1 l2) "%Φ [-> H] HΦ".
+    wp_rec.
+    wp_pures.
+    iApply ("HΦ" with "H").
+  - iIntros (ys l1 l2) "%Φ [[%hd [%l1' [-> [Hhd Hl1']]]] Hl2] HΦ".
+    wp_rec.
+    wp_pures.
+    wp_load.
+    wp_load.
+    wp_pures.
+    wp_apply (IH ys with "[Hl1' Hl2]").
+    --
+      iFrame.
+    --
+      iIntros (l3) "Hl3".
+      wp_let.
+      wp_store.
+      wp_pures.
+      iApply "HΦ".
+      iExists hd, l3.
+      iFrame.
+      done.
+Qed.
 
 (**
   We will implement reverse using a helper function called
@@ -130,8 +164,16 @@ Lemma reverse_append_spec (l acc : val) (xs ys : list val) :
 Proof.
   revert l acc ys.
   induction xs as [| x xs' IH]; simpl.
-  (* exercise *)
-Admitted.
+  - iIntros (l acc ys) "%Φ [-> H] HΦ".
+    wp_rec. wp_pures.
+    iApply ("HΦ" with "H").
+  - iIntros (l acc ys) "%Φ [[%hd [%l' [-> [Hhd Hl']]]] Hys] HΦ".
+    wp_rec. wp_pures.
+    wp_load. wp_load. wp_pures. wp_store.
+    wp_apply (IH _ _ (x :: ys) with "[Hl' Hhd Hys]").
+    -- iFrame. done.
+    -- by rewrite <-app_assoc.
+Qed.
 
 (**
   Now, we use the specification of [reverse_append] to prove the
@@ -142,8 +184,15 @@ Lemma reverse_spec (l : val) (xs : list val) :
     reverse l
   {{{ v, RET v; isList v (rev xs) }}}.
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "%Φ Hl HΦ".
+  rewrite /reverse.
+  wp_lam.
+  wp_pures.
+  wp_apply (reverse_append_spec _ _ xs [] with "[Hl]").
+  -- iFrame. done.
+  -- rewrite app_nil_r. done.
+Qed.
+
 
 (**
   The specifications thus far have been rather straightforward. Now we
@@ -200,13 +249,26 @@ Proof.
   revert a l.
   induction xs as [|x xs IHxs].
   all: simpl.
-  (* exercise *)
-Admitted.
-
-(**
-  We can now sum over a list simply by folding an addition function over
-  it.
-*)
+  - iIntros (a l) "%Φ [-> [_ [Ha Hf]]] HΦ".
+    wp_rec. wp_pures.
+    iModIntro.
+    iApply "HΦ".
+    iFrame. done.
+  - iIntros (a l) "%Φ [[%hd [%l' [-> [Hhd Hl']]]] [[Hx Hxs] [Ha #Hf]]] HΦ".
+    wp_rec. wp_pures.
+    wp_load. wp_load. wp_pures.
+    wp_apply (IHxs with "[Hl' Hxs Ha]").
+    -- iFrame. done.
+    --
+      iIntros (r) "[Hl' Hxs]".
+      wp_apply ("Hf" with "[Hx Hxs]").
+      --- iFrame.
+      ---
+        iIntros (r') "Hr'".
+        iApply "HΦ".
+        iFrame.
+        done.
+Qed.
 
 Definition sum_list : val :=
   λ: "l",

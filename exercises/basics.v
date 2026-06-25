@@ -222,8 +222,10 @@ Qed.
 *)
 Lemma modus_ponens (P Q : iProp Σ) : P -∗ (P -∗ Q) -∗ Q.
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "HP HPQ".
+  iApply "HPQ".
+  iApply "HP".
+Qed.
 
 (**
   Just as with Coq tactics, Iris allows nesting of introduction
@@ -236,8 +238,13 @@ Admitted.
 *)
 Lemma sep_assoc_1 (P Q R : iProp Σ) : P ∗ Q ∗ R ⊢ (P ∗ Q) ∗ R.
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "[HP [HQ HR]]".
+  iSplitL "HP HQ".
+  - iSplitR "HQ".
+    -- iApply "HP".
+    -- iApply "HQ".
+  - iApply "HR".
+Qed.
 
 (**
   Manually splitting a separation can become tedious. To alleviate this,
@@ -289,8 +296,12 @@ Qed.
 Lemma wand_adj (P Q R : iProp Σ) : (P -∗ Q -∗ R) ⊣⊢ (P ∗ Q -∗ R).
 Proof.
   iSplit.
-  (* exercise *)
-Admitted.
+  - iIntros "H [HP HQ]".
+    iApply ("H" with "HP HQ").
+  - iIntros "H HP HQ".
+    iApply "H".
+    iFrame.
+Qed.
 
 (**
   Disjunctions [∨] are treated just like disjunctions in Coq. The
@@ -301,8 +312,12 @@ Admitted.
 *)
 Lemma or_comm (P Q : iProp Σ) : Q ∨ P ⊢ P ∨ Q.
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "[HP | HQ]".
+  - iRight.
+    iFrame.
+  - iLeft.
+    iFrame.
+Qed.
 
 (**
   We can even prove the usual elimination rule for or-elimination
@@ -311,8 +326,12 @@ Admitted.
 *)
 Lemma or_elim (P Q R : iProp Σ) : (P -∗ R) -∗ (Q -∗ R) -∗ P ∨ Q -∗ R.
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "HPR HQR [HP | HQ]".
+  - iApply "HPR".
+    iFrame.
+  - iApply "HQR".
+    iFrame.
+Qed.
 
 (**
   Separating conjunction distributes over disjunction (for the same
@@ -320,8 +339,16 @@ Admitted.
 *)
 Lemma sep_or_distr (P Q R : iProp Σ) : P ∗ (Q ∨ R) ⊣⊢ P ∗ Q ∨ P ∗ R.
 Proof.
-  (* exercise *)
-Admitted.
+  iSplit.
+  - iIntros "[HP [HQ | HR]]".
+    -- iLeft.
+       iFrame.
+    -- iRight.
+       iFrame.
+  - iIntros "[[HP HQ] | [HP HR]]".
+    -- iFrame.
+    -- iFrame.
+Qed.
 
 (**
   Iris has existential and universal quantifiers over any Coq type.
@@ -335,10 +362,10 @@ Lemma sep_ex_distr {A} (P : iProp Σ) (Φ : A → iProp Σ) :
 Proof.
   iSplit.
   - iIntros "(HP & %x & HΦ)".
-    iExists x.
     iFrame.
-  - (* exercise *)
-Admitted.
+  - iIntros "(%x & HP & HΦ)".
+    iFrame.
+Qed.
 
 (**
   Likewise, forall quantification works almost as in Coq. To introduce
@@ -350,7 +377,10 @@ Admitted.
 Lemma sep_all_distr {A} (P Q : A → iProp Σ) :
   (∀ x, P x) ∗ (∀ x, Q x) -∗ (∀ x, P x ∗ Q x).
 Proof.
-  (* exercise *)
-Admitted.
+  iIntros "(HP & HQ) %x".
+  iSplitL "HP".
+  -- iApply ("HP" $! x).
+  -- iApply ("HQ" $! x).
+Qed.
 
 End proofs.
